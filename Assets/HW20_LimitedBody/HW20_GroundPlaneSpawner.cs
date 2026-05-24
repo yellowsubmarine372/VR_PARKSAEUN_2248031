@@ -1,9 +1,8 @@
 using UnityEngine;
-using Vuforia;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// GroundPlaneTarget 위에서 Tap으로 오브젝트를 소환합니다.
-/// 바닥 현실 공간에 가상 오브젝트를 "착지"시키는 경험.
 /// </summary>
 public class HW20_GroundPlaneSpawner : MonoBehaviour
 {
@@ -12,24 +11,21 @@ public class HW20_GroundPlaneSpawner : MonoBehaviour
     public int maxSpawnCount = 5;
     public float spawnLerpSpeed = 4f;
 
-    private AnchorBehaviour _anchor;
     private Camera _arCamera;
     private int _spawnCount = 0;
 
     void Start()
     {
-        _anchor = GetComponent<AnchorBehaviour>();
         _arCamera = Camera.main;
     }
 
     void Update()
     {
-        if (Input.touchCount == 1 && Input.GetTouch(0).phase == TouchPhase.Began)
-            TrySpawn(Input.GetTouch(0).position);
-#if UNITY_EDITOR
-        if (Input.GetMouseButtonDown(0))
-            TrySpawn(Input.mousePosition);
-#endif
+        var pointer = Pointer.current;
+        if (pointer == null) return;
+
+        if (pointer.press.wasPressedThisFrame)
+            TrySpawn(pointer.position.ReadValue());
     }
 
     void TrySpawn(Vector2 screenPos)
@@ -38,7 +34,6 @@ public class HW20_GroundPlaneSpawner : MonoBehaviour
         if (_arCamera == null) return;
 
         Ray ray = _arCamera.ScreenPointToRay(screenPos);
-        // GroundPlane은 y=0 평면 기준
         Plane ground = new Plane(Vector3.up, transform.position);
         if (ground.Raycast(ray, out float dist))
         {

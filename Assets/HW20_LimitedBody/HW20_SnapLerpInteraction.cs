@@ -1,8 +1,8 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 /// <summary>
-/// Snap + Lerp: 오브젝트를 드래그하여 놓으면 가장 가까운 그리드 위치로 부드럽게 스냅됩니다.
-/// 공간의 규칙성(그리드)을 통해 사용자가 현실 공간을 인식하게 합니다.
+/// Snap + Lerp: 드래그 후 손가락을 떼면 가장 가까운 그리드 위치로 부드럽게 스냅됩니다.
 /// </summary>
 public class HW20_SnapLerpInteraction : MonoBehaviour
 {
@@ -38,18 +38,15 @@ public class HW20_SnapLerpInteraction : MonoBehaviour
             }
         }
 
-        if (Input.touchCount == 1)
-        {
-            Touch touch = Input.GetTouch(0);
-            if (touch.phase == TouchPhase.Began) TryBeginDrag(touch.position);
-            else if (touch.phase == TouchPhase.Moved && _isDragging) DragTo(touch.position);
-            else if (touch.phase == TouchPhase.Ended && _isDragging) EndDrag();
-        }
-#if UNITY_EDITOR
-        if (Input.GetMouseButtonDown(0)) TryBeginDrag(Input.mousePosition);
-        else if (Input.GetMouseButton(0) && _isDragging) DragTo(Input.mousePosition);
-        else if (Input.GetMouseButtonUp(0) && _isDragging) EndDrag();
-#endif
+        var pointer = Pointer.current;
+        if (pointer == null) return;
+
+        if (pointer.press.wasPressedThisFrame)
+            TryBeginDrag(pointer.position.ReadValue());
+        else if (pointer.press.isPressed && _isDragging)
+            DragTo(pointer.position.ReadValue());
+        else if (pointer.press.wasReleasedThisFrame && _isDragging)
+            EndDrag();
     }
 
     void TryBeginDrag(Vector2 screenPos)
@@ -81,7 +78,6 @@ public class HW20_SnapLerpInteraction : MonoBehaviour
 
     Vector3 GetSnapPosition(Vector3 pos)
     {
-        // 명시적 스냅 포인트가 있으면 가장 가까운 포인트로 스냅
         if (snapPoints != null && snapPoints.Length > 0)
         {
             Transform closest = null;
@@ -96,10 +92,8 @@ public class HW20_SnapLerpInteraction : MonoBehaviour
                 return closest.position;
         }
 
-        // 그리드 기반 스냅
         float x = Mathf.Round(pos.x / gridSize) * gridSize;
-        float y = pos.y;
         float z = Mathf.Round(pos.z / gridSize) * gridSize;
-        return new Vector3(x, y, z);
+        return new Vector3(x, pos.y, z);
     }
 }
